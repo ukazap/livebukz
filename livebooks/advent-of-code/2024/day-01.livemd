@@ -1,0 +1,53 @@
+# Day 1, Advent of Code 2024
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.14.2"}
+])
+```
+
+## Setup
+
+```elixir
+input = Kino.Input.textarea("Paste in your input:")
+```
+
+## Part 1
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+unsorted_lists =
+  input
+  |> Kino.Input.read()
+  |> String.splitter("\n", trim: true)
+  |> Stream.map(fn line ->
+    [a, b] = line |> String.trim() |> String.split("   ")
+    {String.to_integer(a), String.to_integer(b)}
+  end)
+  |> Enum.reduce([[], []], fn {a, b}, [unsorted_list_a, unsorted_list_b] ->
+    [[a | unsorted_list_a], [b | unsorted_list_b]]
+  end)
+
+[list_a, list_b] =
+  unsorted_lists
+  |> Enum.map(&Task.async(fn -> Enum.sort(&1) end))
+  |> Task.await_many()
+
+list_a
+|> Stream.zip(list_b)
+|> Stream.map(fn {a, b} -> abs(a - b) end)
+|> Enum.sum()
+```
+
+## Part 2
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+freq_b = Enum.frequencies(list_b)
+
+list_a
+|> Stream.map(fn number -> number * Map.get(freq_b, number, 0) end)
+|> Enum.sum()
+```
