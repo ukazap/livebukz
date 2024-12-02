@@ -1,0 +1,101 @@
+# Day 2, Advent of Code 2024
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.14.2"}
+])
+```
+
+## Setup
+
+```elixir
+input = Kino.Input.textarea("Paste in your input:")
+```
+
+## Part 1
+
+```elixir
+defmodule Report do
+  defstruct [:levels, :safe]
+
+  def new(levels) when is_binary(levels) do
+    levels
+    |> String.splitter([" ", "\n"], trim: true)
+    |> Enum.map(&String.to_integer/1)
+    |> new()
+  end
+
+  def new(levels) do
+    safe =
+      levels
+      |> Stream.chunk_every(2, 1, :discard)
+      |> Stream.map(fn
+        [prev_level, prev_level] -> :stuck
+        [prev_level, next_level] when abs(prev_level - next_level) > 3 -> :too_far
+        [prev_level, next_level] when prev_level < next_level -> :up
+        [prev_level, next_level] when prev_level > next_level -> :down
+      end)
+      |> Enum.reduce_while(nil, fn
+        :stuck, _ -> {:halt, :unsafe}
+        :too_far, _ -> {:halt, :unsafe}
+        direction, nil -> {:cont, direction}
+        direction, direction -> {:cont, direction}
+        _direction, _opposite_direction -> {:halt, :unsafe}
+      end)
+      |> case do
+        :unsafe -> false
+        _ -> true
+      end
+
+    %Report{levels: levels, safe: safe}
+  end
+
+  def safe?(%Report{safe: true}), do: true
+  def safe?(_), do: false
+end
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+reports =
+  input
+  |> Kino.Input.read()
+  |> String.splitter("\n", trim: true)
+  |> Stream.map(&Report.new/1)
+
+reports
+|> Stream.filter(&Report.safe?/1)
+|> Enum.count()
+```
+
+## Part 2
+
+```elixir
+defmodule Report.ProblemDampener do
+  def dampen(%Report{safe: true} = report), do: report
+  
+  def dampen(%Report{levels: levels} = report) do
+    0..(Enum.count(levels) - 1)
+    |> Stream.map(fn removal_index ->
+      levels
+      |> List.delete_at(removal_index)
+      |> Report.new()
+    end)
+    |> Enum.find(&Report.safe?/1)
+    |> case do
+      nil -> report
+      dampened -> dampened
+    end
+  end
+end
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+reports
+|> Stream.map(&Report.ProblemDampener.dampen/1)
+|> Stream.filter(&Report.safe?/1)
+|> Enum.count()
+```
