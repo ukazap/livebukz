@@ -1,0 +1,96 @@
+# Day 3, Advent of Code 2024
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.14.2"},
+  {:nimble_parsec, "~> 1.4"}
+])
+```
+
+## Setup
+
+```elixir
+input = Kino.Input.textarea("Paste in your input:")
+```
+
+## Part 1
+
+```elixir
+defmodule MulParser do
+  import NimbleParsec
+
+  mul_instruction =
+    ignore(string("mul("))
+    |> integer(min: 1, max: 3)
+    |> ignore(string(","))
+    |> integer(min: 1, max: 3)
+    |> ignore(string(")"))
+    |> tag(:mul)
+
+  irrelevant_char =
+    ignore(utf8_char([]))
+
+  defparsec :parse, repeat(choice([mul_instruction, irrelevant_char]))
+end
+```
+
+```elixir
+input
+|> Kino.Input.read()
+|> MulParser.parse()
+|> elem(1)
+|> Stream.map(fn {:mul, [x, y]} -> x * y end)
+|> Enum.sum()
+```
+
+## Part 2
+
+```elixir
+defmodule ConditionalMulParser do
+  import NimbleParsec
+
+  mul_instruction =
+    ignore(string("mul("))
+    |> integer(min: 1, max: 3)
+    |> ignore(string(","))
+    |> integer(min: 1, max: 3)
+    |> ignore(string(")"))
+    |> tag(:mul)
+
+  do_instruction =
+    ignore(string("do()"))
+    |> tag(:do)
+
+  dont_instruction =
+    ignore(string("don't()"))
+    |> tag(:dont)
+
+  instructions =
+    choice([
+      mul_instruction,
+      do_instruction,
+      dont_instruction
+    ])
+
+  irrelevant_char =
+    ignore(utf8_char([]))
+
+  defparsec :parse, repeat(choice([instructions, irrelevant_char]))
+end
+```
+
+```elixir
+input
+|> Kino.Input.read()
+|> ConditionalMulParser.parse()
+|> elem(1)
+|> Enum.reduce({true, 0}, fn instruction, {must_multiply, total} ->
+  case {must_multiply, instruction} do
+    {true, {:mul, [x, y]}} -> {true, total + x * y}
+    {false, {:mul, _}} -> {false, total}
+    {_, {:do, _}} -> {true, total}
+    {_, {:dont, _}} -> {false, total}
+  end
+end)
+|> elem(1)
+```
