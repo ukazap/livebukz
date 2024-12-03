@@ -10,7 +10,7 @@ Mix.install([
 ## Setup
 
 ```elixir
-input = Kino.Input.textarea("Paste in your input:")
+input = Kino.Input.textarea("Paste in your input:", default: "xmul(2,4)&mul[3,7]!^don't()_mul(5,5)+mul(32,64](mul(11,8)undo()?mul(8,5))")
 ```
 
 ## Part 1
@@ -84,12 +84,14 @@ input
 |> Kino.Input.read()
 |> ConditionalMulParser.parse()
 |> elem(1)
-|> Enum.reduce({true, 0}, fn instruction, {must_multiply, total} ->
-  case {must_multiply, instruction} do
-    {true, {:mul, [x, y]}} -> {true, total + x * y}
-    {false, {:mul, _}} -> {false, total}
-    {_, {:do, _}} -> {true, total}
-    {_, {:dont, _}} -> {false, total}
+|> Enum.reduce({true, 0}, fn instruction, {enabled, total} ->
+  with {:mul, [x, y]} <- instruction,
+       true <- enabled do
+    {true, total + x * y}
+  else
+    {:do, _} -> {true, total}
+    {:dont, _} -> {false, total}
+    _ -> {enabled, total}
   end
 end)
 |> elem(1)
