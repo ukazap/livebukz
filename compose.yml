@@ -5,10 +5,10 @@ services:
       - 8080:8080
       - 8081:8081
     volumes:
-      - ./livebooks:/livebooks:z
+      - ./:/livebukz:z
       - data:/livebook_data
     environment:
-      LIVEBOOK_HOME: /livebooks
+      LIVEBOOK_HOME: /livebukz
       LIVEBOOK_DATA_PATH: /livebook_data
 
 volumes:
