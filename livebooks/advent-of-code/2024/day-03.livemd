@@ -16,46 +16,50 @@ input = Kino.Input.textarea("Paste in your input:", default: "xmul(2,4)&mul[3,7]
 ## Part 1
 
 ```elixir
-defmodule MulParser do
+defmodule Computer.Parsers do
   import NimbleParsec
 
-  mul_instruction =
+  def mul_instruction do
     ignore(string("mul("))
     |> integer(min: 1, max: 3)
     |> ignore(string(","))
     |> integer(min: 1, max: 3)
     |> ignore(string(")"))
     |> tag(:mul)
+  end
 
-  irrelevant_char =
+  def irrelevant_char do
     ignore(utf8_char([]))
+  end
+end
 
-  defparsec :parse, repeat(choice([mul_instruction, irrelevant_char]))
+defmodule Computer do
+  import NimbleParsec
+  import Computer.Parsers
+
+  defparsec :parse_instructions, repeat(choice([mul_instruction(), irrelevant_char()]))
+
+  def execute(program) do
+    program
+    |> parse_instructions()
+    |> elem(1)
+    |> Stream.map(fn {:mul, [x, y]} -> x * y end)
+    |> Enum.sum()
+  end
 end
 ```
 
 ```elixir
-input
-|> Kino.Input.read()
-|> MulParser.parse()
-|> elem(1)
-|> Stream.map(fn {:mul, [x, y]} -> x * y end)
-|> Enum.sum()
+program = Kino.Input.read(input)
+Computer.execute(program)
 ```
 
 ## Part 2
 
 ```elixir
-defmodule ConditionalMulParser do
+defmodule Computer.V2 do
   import NimbleParsec
-
-  mul_instruction =
-    ignore(string("mul("))
-    |> integer(min: 1, max: 3)
-    |> ignore(string(","))
-    |> integer(min: 1, max: 3)
-    |> ignore(string(")"))
-    |> tag(:mul)
+  import Computer.Parsers
 
   do_instruction =
     ignore(string("do()"))
@@ -65,34 +69,35 @@ defmodule ConditionalMulParser do
     ignore(string("don't()"))
     |> tag(:dont)
 
-  instructions =
+  choices =
     choice([
-      mul_instruction,
       do_instruction,
-      dont_instruction
+      dont_instruction,
+      mul_instruction(),
+      irrelevant_char()
     ])
 
-  irrelevant_char =
-    ignore(utf8_char([]))
+  defparsec :parse_instructions, repeat(choices)
 
-  defparsec :parse, repeat(choice([instructions, irrelevant_char]))
+  def execute(program) do
+    program
+    |> parse_instructions()
+    |> elem(1)
+    |> Enum.reduce({true, 0}, fn instruction, {enabled, total} ->
+      with {:mul, [x, y]} <- instruction,
+           true <- enabled do
+        {true, total + x * y}
+      else
+        {:do, _} -> {true, total}
+        {:dont, _} -> {false, total}
+        _ -> {enabled, total}
+      end
+    end)
+    |> elem(1)
+  end
 end
 ```
 
 ```elixir
-input
-|> Kino.Input.read()
-|> ConditionalMulParser.parse()
-|> elem(1)
-|> Enum.reduce({true, 0}, fn instruction, {enabled, total} ->
-  with {:mul, [x, y]} <- instruction,
-       true <- enabled do
-    {true, total + x * y}
-  else
-    {:do, _} -> {true, total}
-    {:dont, _} -> {false, total}
-    _ -> {enabled, total}
-  end
-end)
-|> elem(1)
+Computer.V2.execute(program)
 ```
