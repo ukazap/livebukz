@@ -1,10 +1,10 @@
 # Livebukz
 
-Ukaza Perdana's collection of [livebooks](https://livebook.dev/).
+## Welcome!
 
-[![Run in Livebook](https://livebook.dev/badge/v1/pink.svg)](https://livebook.dev/run?url=https%3A%2F%2Fgithub.com%2Fukazap%2Flivebukz%2Fblob%2Fmain%2FREADME.livemd)
-
-## Contents
+Ukaza Perdana's collections of [livebooks](https://livebook.dev/):
 
 * [Advent of Code](advent-of-code/index.livemd)
-* There will be more!
+* there will be more!
+
+[![Run in Livebook](https://livebook.dev/badge/v1/pink.svg)](https://livebook.dev/run?url=https%3A%2F%2Fgithub.com%2Fukazap%2Flivebukz%2Fblob%2Fmain%2FREADME.livemd)
