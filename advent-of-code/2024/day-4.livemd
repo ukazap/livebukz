@@ -1,0 +1,161 @@
+# Day 4 - Advent of Code 2024
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.14.2"}
+])
+```
+
+## Setup
+
+```elixir
+input = Kino.Input.textarea("Paste in your input:", default: "MMMSXXMASM
+MSAMXMSMSA
+AMXSXMAAMM
+MSAMASMSMX
+XMASAMXAMM
+XXAMMXXAMA
+SMSMSASXSS
+SAXAMASAAA
+MAMMMXMMMM
+MXMXAXMASX
+")
+```
+
+## Part 1
+
+```elixir
+defmodule WorldMap do
+  defstruct [:coordinates, :table]
+  
+  def build(string) do
+    list =
+      string
+      |> String.splitter("\n", trim: true)
+      |> Enum.map(&String.to_charlist/1)
+
+    x_range = 0..((list |> Enum.at(0) |> Enum.count()) - 1)
+    y_range = 0..(Enum.count(list)-1)
+
+    table = :ets.new(:world, [:set])
+
+    coordinates =
+      y_range
+      |> Enum.flat_map(fn y ->
+        x_range
+        |> Enum.map(fn x ->
+          :ets.insert(table, {{x, y}, list |> Enum.at(y) |> Enum.at(x)})
+          {x, y}
+        end)
+      end)
+
+    %WorldMap{coordinates: coordinates, table: table}
+  end
+  
+  def at(%WorldMap{table: table}, {x, y}) do    
+    table
+    |> :ets.lookup({x, y})
+    |> case do
+      [{{^x, ^y}, value}] -> value
+      _ -> nil
+    end
+  end
+end
+```
+
+```elixir
+defmodule XMAS do
+  def search(%WorldMap{coordinates: coordinates} = world_map) do
+    coordinates
+    |> Stream.flat_map(fn position ->
+      position
+      |> directions()
+      |> Enum.map(fn direction ->
+        charlist = Enum.map(direction, &WorldMap.at(world_map, &1))
+
+        case charlist do
+          ~c"XMAS" -> direction
+          ~c"SAMX" -> Enum.reverse(direction)
+          _ -> []
+        end
+      end)
+    end)
+    |> Stream.reject(&Enum.empty?/1)
+    |> Stream.uniq()
+  end
+
+  def directions({x, y}) do
+    [
+      # north
+      [{x, y}, {x, y-1}, {x, y-2}, {x, y-3}],
+      # south
+      [{x, y}, {x, y+1}, {x, y+2}, {x, y+3}],
+      # west
+      [{x, y}, {x-1, y}, {x-2, y}, {x-3, y}],
+      # east
+      [{x, y}, {x+1, y}, {x+2, y}, {x+3, y}],
+      # northwest
+      [{x, y}, {x-1, y-1}, {x-2, y-2}, {x-3, y-3}],
+      # southwest
+      [{x, y}, {x-1, y+1}, {x-2, y+2}, {x-3, y+3}],
+      # northeast
+      [{x, y}, {x+1, y-1}, {x+2, y-2}, {x+3, y-3}],
+      # southeast
+      [{x, y}, {x+1, y+1}, {x+2, y+2}, {x+3, y+3}]
+    ]
+  end
+end
+```
+
+```elixir
+world_map =
+  input
+  |> Kino.Input.read()
+  |> WorldMap.build()
+
+world_map
+|> XMAS.search()
+|> Enum.count()
+```
+
+## Part 2
+
+```elixir
+defmodule XShapedMAS do
+  def search(%WorldMap{coordinates: coordinates} = world_map) do
+    coordinates
+    |> Stream.filter(fn position ->
+      with ?A <- world_map |> WorldMap.at(position),
+           x <- world_map |> cross_at(position) do
+        x |> mas?
+      else
+        _ -> false
+      end
+    end)
+  end
+
+  def cross_at(world_map, {x, y}) do
+    [
+      [{x-1, y-1}, {x, y}, {x+1, y+1}],
+      [{x-1, y+1}, {x, y}, {x+1, y-1}]
+    ]
+    |> Enum.map(fn diagonal_line ->
+      Enum.map(diagonal_line, &WorldMap.at(world_map, &1))
+    end)
+  end
+
+  def mas?(x) do
+    Enum.all?(x, fn
+      ~c"MAS" -> true
+      ~c"SAM" -> true
+      _ -> false
+    end)
+  end
+end
+```
+
+```elixir
+world_map
+|> XShapedMAS.search()
+|> Enum.count()
+```
